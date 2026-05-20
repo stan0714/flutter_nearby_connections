@@ -5,7 +5,7 @@ buildscript {
     ext.kotlin_version = '1.7.10'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
@@ -17,7 +17,7 @@ buildscript {
 rootProject.allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 }
 
@@ -25,6 +25,10 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
+    // AGP 8.x requires namespace. Previously declared only via
+    // package= in AndroidManifest.xml which AGP 8.0+ rejects.
+    namespace 'com.nankai.flutter_nearby_connections'
+
     compileSdkVersion 34
 
     sourceSets {
@@ -33,6 +37,15 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 34
+    }
+    // Kotlin 2.x picks jvmTarget 21 by default; pin to 17 to match
+    // the host app and avoid "Inconsistent JVM-target compatibility".
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
     lintOptions {
         disable 'InvalidPackage'
