@@ -3,6 +3,7 @@ package com.nankai.flutter_nearby_connections
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ContentValues.TAG
@@ -19,7 +20,9 @@ import com.google.android.gms.nearby.connection.*
 
 
 const val NOTIFICATION_ID = 101
-const val CHANNEL_ID = "channel"
+// Importance of an existing channel can't be changed, so a new id is needed for the
+// low-importance channel to reach users upgrading from the old default-importance one.
+const val CHANNEL_ID = "nearby_sharing"
 
 class NearbyService : Service() {
     private val binder: IBinder = LocalBinder(this)
@@ -33,8 +36,10 @@ class NearbyService : Service() {
         }
     }
 
+    // The service only lives while the host app is sharing or receiving; if the system
+    // kills it, it must not come back on its own with nobody using it.
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     fun initService(callbackUtils: CallbackUtils) {
@@ -101,17 +106,31 @@ class NearbyService : Service() {
     private fun getNotification(): Notification? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
-                CHANNEL_ID, "Foreground Service Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
+                CHANNEL_ID, appString("nearby_notification_channel", "Nearby sharing"),
+                NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
+            manager.deleteNotificationChannel("channel") // pre-rename default-importance channel
         }
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Nearby Service")
-            .setContentText("Wi-Fi Direct")
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(appString("nearby_notification_title", "Nearby Service"))
+            .setContentText(appString("nearby_notification_text", "Wi-Fi Direct"))
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .build()
+            .setOngoing(true)
+        // Tapping the notification brings the user back to the app that is sharing.
+        packageManager.getLaunchIntentForPackage(packageName)?.let { launch ->
+            builder.setContentIntent(
+                PendingIntent.getActivity(this, 0, launch, PendingIntent.FLAG_IMMUTABLE)
+            )
+        }
+        return builder.build()
+    }
+
+    /** Host apps can localize the notification by defining these string resources. */
+    private fun appString(name: String, fallback: String): String {
+        val id = resources.getIdentifier(name, "string", packageName)
+        return if (id != 0) getString(id) else fallback
     }
 }
 
