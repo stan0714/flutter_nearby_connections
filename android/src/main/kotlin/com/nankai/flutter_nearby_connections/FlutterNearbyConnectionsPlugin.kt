@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.NonNull
-import androidx.core.content.ContextCompat.startForegroundService
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.ConnectionsClient
 import com.google.android.gms.nearby.connection.Strategy

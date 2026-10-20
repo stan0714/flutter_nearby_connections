@@ -68,7 +68,6 @@ class ServiceBindManager(
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        mService?.stopForeground(true)
         mService?.stopSelf()
     }
 
